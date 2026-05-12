@@ -6,7 +6,7 @@ use warnings;
 use SQL::Translator;
 
 use File::Spec::Functions qw(catfile updir tmpdir);
-use FindBin qw($Bin);
+use FindBin               qw($Bin);
 use Test::More;
 use Test::Differences;
 use Test::SQL::Translator qw(maybe_plan);
@@ -19,31 +19,31 @@ use_ok('SQL::Translator::Diff') or die "Cannot continue\n";
 
 my $tr = SQL::Translator->new;
 
-my ( $source_schema, $target_schema ) = map {
-    my $t = SQL::Translator->new;
-    $t->parser( 'YAML' )
+my ($source_schema, $target_schema) = map {
+  my $t = SQL::Translator->new;
+  $t->parser('YAML')
       or die $tr->error;
-    my $out = $t->translate( catfile($Bin, qw/data diff pgsql/, $_ ) )
+  my $out = $t->translate(catfile($Bin, qw/data diff pgsql/, $_))
       or die $tr->error;
 
-    my $schema = $t->schema;
-    unless ( $schema->name ) {
-        $schema->name( $_ );
-    }
-    ($schema);
+  my $schema = $t->schema;
+  unless ($schema->name) {
+    $schema->name($_);
+  }
+  ($schema);
 } (qw( create1.yml create2.yml ));
 
 # Test for differences
 my $out = SQL::Translator::Diff::schema_diff(
-    $source_schema,
-   'PostgreSQL',
-    $target_schema,
-   'PostgreSQL',
-   {
-     sqlt_args => {
-         quote_identifiers => 1,
-     }
-   }
+  $source_schema,
+  'PostgreSQL',
+  $target_schema,
+  'PostgreSQL',
+  {
+    sqlt_args => {
+      quote_identifiers => 1,
+    }
+  }
 );
 
 eq_or_diff($out, <<'## END OF DIFF', "Diff as expected");
@@ -78,6 +78,8 @@ ALTER TABLE "person" ALTER COLUMN "name" SET NOT NULL;
 
 ALTER TABLE "person" ALTER COLUMN "age" SET DEFAULT 18;
 
+ALTER TABLE "person" ALTER COLUMN "weight" DROP NOT NULL;
+
 ALTER TABLE "person" ALTER COLUMN "iq" TYPE bigint;
 
 ALTER TABLE "person" ALTER COLUMN "nickname" SET NOT NULL;
@@ -100,13 +102,18 @@ COMMIT;
 ## END OF DIFF
 
 $out = SQL::Translator::Diff::schema_diff(
-    $source_schema, 'PostgreSQL', $target_schema, 'PostgreSQL',
-    { ignore_index_names => 1,
-      ignore_constraint_names => 1,
-      sqlt_args => {
-         quote_identifiers => 0,
-      }
-    });
+  $source_schema,
+  'PostgreSQL',
+  $target_schema,
+  'PostgreSQL',
+  {
+    ignore_index_names      => 1,
+    ignore_constraint_names => 1,
+    sqlt_args               => {
+      quote_identifiers => 0,
+    }
+  }
+);
 
 eq_or_diff($out, <<'## END OF DIFF', "Diff as expected");
 -- Convert schema 'create1.yml' to 'create2.yml':;
@@ -133,6 +140,8 @@ ALTER TABLE person ALTER COLUMN name SET NOT NULL;
 
 ALTER TABLE person ALTER COLUMN age SET DEFAULT 18;
 
+ALTER TABLE person ALTER COLUMN weight DROP NOT NULL;
+
 ALTER TABLE person ALTER COLUMN iq TYPE bigint;
 
 ALTER TABLE person ALTER COLUMN nickname SET NOT NULL;
@@ -152,11 +161,8 @@ COMMIT;
 
 ## END OF DIFF
 
-
 # Test for sameness
-$out = SQL::Translator::Diff::schema_diff(
-    $source_schema, 'PostgreSQL', $source_schema, 'PostgreSQL'
-);
+$out = SQL::Translator::Diff::schema_diff($source_schema, 'PostgreSQL', $source_schema, 'PostgreSQL');
 
 eq_or_diff($out, <<'## END OF DIFF', "No differences found");
 -- Convert schema 'create1.yml' to 'create1.yml':;

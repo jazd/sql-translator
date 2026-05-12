@@ -7,11 +7,7 @@ use SQL::Translator;
 use FindBin '$Bin';
 
 BEGIN {
-    maybe_plan(
-        2,
-        'SQL::Translator::Parser::SQLite',
-        'SQL::Translator::Producer::JSON',
-    );
+  maybe_plan(2, 'SQL::Translator::Parser::SQLite', 'SQL::Translator::Producer::JSON',);
 }
 
 my $sqlt_version = $SQL::Translator::VERSION;
@@ -109,6 +105,9 @@ my $json = from_json(<<JSON);
                     "field comment 2"
                   ],
                   "data_type" : "INTEGER",
+                  "extra" : {
+                     "auto_increment_type" : "monotonic"
+                  },
                   "default_value" : null,
                   "is_auto_increment" : 1,
                   "is_nullable" : 0,
@@ -137,7 +136,12 @@ my $json = from_json(<<JSON);
             "indices" : [],
             "name" : "person",
             "options" : [],
-            "order" : "1"
+            "order" : "1",
+            "comments" : [
+               "table comment 1",
+               "table comment 2",
+               "table comment 3"
+             ]
          },
          "pet" : {
             "constraints" : [
@@ -281,7 +285,8 @@ my $json = from_json(<<JSON);
       "parser_type" : "SQL::Translator::Parser::SQLite",
       "producer_args" : {
          "canonical" : 1,
-         "pretty" : 1
+         "pretty" : 1,
+         "totally_bogus_arg_to_test_arg_filtering_to_json" : 1
       },
       "producer_type" : "SQL::Translator::Producer::JSON",
       "show_warnings" : 0,
@@ -295,16 +300,17 @@ my $file = "$Bin/data/sqlite/create.sql";
 open my $fh, '<', $file or die "Can't read '$file': $!\n";
 local $/;
 my $data = <$fh>;
-my $tr = SQL::Translator->new(
-    parser => 'SQLite',
-    producer => 'JSON',
-    producer_args => {
-        canonical => 1,
-        pretty => 1,
-    },
-    data => $data,
+my $tr   = SQL::Translator->new(
+  parser        => 'SQLite',
+  producer      => 'JSON',
+  producer_args => {
+    canonical                                       => 1,
+    pretty                                          => 1,
+    totally_bogus_arg_to_test_arg_filtering_to_json => 1,
+  },
+  data => $data,
 );
 
 my $out;
 lives_ok { $out = from_json($tr->translate) } 'Translate SQLite to JSON';
-is_deeply( $out, $json, 'JSON matches expected' );
+is_deeply($out, $json, 'JSON matches expected');
